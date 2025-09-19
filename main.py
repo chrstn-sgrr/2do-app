@@ -41,6 +41,9 @@ class Dodo_App:
             self.tasks_listbox.insert(tk.END, task)
             self.task_entry.delete(0, tk.END)
 
+    def on_enter_pressed(self, event):
+        self.add_task()
+
     def remove_task(self):
         try:
             selected_index = self.tasks_listbox.curselection()[0]
@@ -56,6 +59,7 @@ class Dodo_App:
 
         self.task_entry = tk.Entry(input_frame, width=40)
         self.task_entry.pack(side=tk.LEFT, padx=5)
+        self.task_entry.bind("<Return>", self.on_enter_pressed)
 
         add_button = tk.Button(input_frame, text="Add Task", command=self.add_task)
         add_button.pack(side=tk.LEFT)
