@@ -50,9 +50,6 @@ class Dodo_App:
             self.create_task_checkbox(task, len(self.tasks) - 1)
             self.task_entry.delete(0, tk.END)
 
-    def on_enter_pressed(self, event):
-        self.add_task()
-
     def refresh_task_display(self):
         for widget in self.tasks_frame.winfo_children():
             widget.destroy()
@@ -71,6 +68,7 @@ class Dodo_App:
         self.task_entry = tk.Entry(input_frame, width=40)
         self.task_entry.pack(side=tk.LEFT, padx=5)
         self.task_entry.bind("<Return>", self.on_enter_pressed)
+        self.root.bind("<Delete>", self.on_delete_pressed)
 
         self.tasks_frame = tk.Frame(self.root)
         self.tasks_frame.pack(pady=10, fill=tk.BOTH, expand=True)
@@ -101,6 +99,12 @@ class Dodo_App:
 
     def toggle_task(self, index):
         self.tasks[index]["completed"] = not self.tasks[index]["completed"]
+
+    def on_enter_pressed(self, event):
+        self.add_task()
+
+    def on_delete_pressed(self, event):
+        self.remove_task()
 
 if __name__ == "__main__":
     root = tk.Tk()
