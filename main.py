@@ -78,6 +78,9 @@ class Dodo_App:
         button_frame = tk.Frame(self.root)
         button_frame.pack(pady=5)
 
+        add_button = tk.Button(input_frame, text="Add Task", command=self.add_task) 
+        add_button.pack(side=tk.LEFT)
+
         remove_button = tk.Button(button_frame, text="Remove Task/s", command=self.remove_task)
         remove_button.pack(side=tk.LEFT, padx=5)
 
