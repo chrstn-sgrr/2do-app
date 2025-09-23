@@ -23,9 +23,15 @@ class Dodo_App:
         
         try:
             with open(file_path, "r") as file:
-                self.tasks = json.load(file)
-                for task in self.tasks:
-                    self.tasks_listbox.insert(tk.END, task)
+                loaded_tasks = json.load(file)
+
+                for task in loaded_tasks:
+                    if isinstance(task, str):
+                        self.tasks.append({"text": task, "completed":False})
+                    else:
+                        self.tasks.append(task)
+                
+                self.refresh_task_display()
         except json.JSONDecodeError:
             print("Invalid JSON data in json file. Starting with empty list")
     
@@ -35,23 +41,26 @@ class Dodo_App:
             json.dump(self.tasks, file)
 
     def add_task(self):
-        task = self.task_entry.get()
-        if task:
+        task_text = self.task_entry.get()
+        if task_text:
+            task = {"text": task_text, "completed":False}
             self.tasks.append(task)
-            self.tasks_listbox.insert(tk.END, task)
+            self.create_task_checkbox(task, len(self.tasks) - 1)
             self.task_entry.delete(0, tk.END)
 
     def on_enter_pressed(self, event):
         self.add_task()
 
-    def remove_task(self):
-        try:
-            selected_index = self.tasks_listbox.curselection()[0]
-            del self.tasks[selected_index]
-            self.tasks_listbox.delete(selected_index)
+    def refresh_task_display(self):
+        for widget in self.tasks_frame.winfo_children():
+            widget.destroy()
 
-        except IndexError:
-            print("No task selected to remove")
+        for index, task in enumerate(self.tasks):
+            self.create_task_checkbox(task, index)
+
+    def remove_task(self):
+        self.tasks = [task for task in self.tasks if not task["completed"]]
+        self.refresh_task_display()
 
     def create_widgets(self):
         input_frame = tk.Frame(self.root)
@@ -61,20 +70,32 @@ class Dodo_App:
         self.task_entry.pack(side=tk.LEFT, padx=5)
         self.task_entry.bind("<Return>", self.on_enter_pressed)
 
-        add_button = tk.Button(input_frame, text="Add Task", command=self.add_task)
-        add_button.pack(side=tk.LEFT)
-
-        self.tasks_listbox = tk.Listbox(self.root, width=50, height=10)
-        self.tasks_listbox.pack(pady=10)
+        self.tasks_frame = tk.Frame(self.root)
+        self.tasks_frame.pack(pady=10, fill=tk.BOTH, expand=True)
 
         button_frame = tk.Frame(self.root)
         button_frame.pack(pady=5)
 
-        remove_button = tk.Button(button_frame, text="Remove Task", command=self.remove_task)
+        remove_button = tk.Button(button_frame, text="Remove Task/s", command=self.remove_task)
+        remove_button.pack(side=tk.LEFT, padx=5)
+
+        remove_button = tk.Button(button_frame, text="Refresh Tasks", command=self.refresh_task_display)
         remove_button.pack(side=tk.LEFT, padx=5)
 
         save_button = tk.Button(button_frame, text="Save Tasks", command=self.save_tasks)
         save_button.pack(side=tk.LEFT, padx=5)
+
+    def create_task_checkbox(self, task, index):
+        checkbox = tk.Checkbutton(
+            self.tasks_frame,
+            text=task["text"],
+            variable=tk.BooleanVar(value=task["completed"]),
+            command=lambda: self.toggle_task(index)
+        )
+        checkbox.pack(anchor="w", padx=10, pady=2)
+
+    def toggle_task(self, index):
+        self.tasks[index]["completed"] = not self.tasks[index]["completed"]
 
 if __name__ == "__main__":
     root = tk.Tk()
