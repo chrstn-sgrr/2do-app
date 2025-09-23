@@ -1,3 +1,4 @@
+from operator import iconcat
 import tkinter as tk
 import json
 import os
@@ -7,6 +8,7 @@ class Dodo_App:
     def __init__(self, root):
         self.root = root
         self.root.title("2do App")
+        self.root.iconbitmap("assets/favicon.ico")
 
         self.tasks = []
 
