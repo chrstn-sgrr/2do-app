@@ -15,6 +15,15 @@ class Dodo_App:
         self.create_widgets()
         self.load_tasks()
 
+    def priority_color(self, task):
+        base = self.root.cget("bg")
+        colors = {
+            "normal": base,
+            "medium": "#fff8c4", 
+            "high":   "#ffe4e4", 
+        }
+        return colors.get(task.get("priority", "normal"), base)
+
     def load_tasks(self):
         file_path = "data/tasks.json"
 
@@ -29,8 +38,10 @@ class Dodo_App:
 
                 for task in loaded_tasks:
                     if isinstance(task, str):
-                        self.tasks.append({"text": task, "completed":False})
+                        self.tasks.append({"text": task, "completed":False, "priority": "normal"})
                     else:
+                        if "priority" not in task:
+                            task["priority"] = "normal"
                         self.tasks.append(task)
                 
                 self.refresh_task_display()
@@ -45,7 +56,7 @@ class Dodo_App:
     def add_task(self):
         task_text = self.task_entry.get()
         if task_text:
-            task = {"text": task_text, "completed":False}
+            task = {"text": task_text, "completed":False, "priority":self.priority_var.get()}
             self.tasks.append(task)
             self.create_task_checkbox(task, len(self.tasks) - 1)
             self.task_entry.delete(0, tk.END)
@@ -63,10 +74,14 @@ class Dodo_App:
 
     def create_widgets(self):
         input_frame = tk.Frame(self.root)
-        input_frame.pack(pady=10)
+        input_frame.pack(pady=10, fill=tk.X)
+
+        self.priority_var = tk.StringVar(value="normal")
+        priority_menu = tk.OptionMenu(input_frame, self.priority_var, "normal","medium","high")
+        priority_menu.pack(side=tk.LEFT, padx=5)
 
         self.task_entry = tk.Entry(input_frame, width=40)
-        self.task_entry.pack(side=tk.LEFT, padx=5)
+        self.task_entry.pack(side=tk.LEFT, padx=5, fill=tk.BOTH, expand=True)
         self.task_entry.bind("<Return>", self.on_enter_pressed)
         self.root.bind("<Delete>", self.on_delete_pressed)
 
@@ -74,7 +89,7 @@ class Dodo_App:
         self.tasks_frame.pack(pady=10, fill=tk.BOTH, expand=True)
 
         button_frame = tk.Frame(self.root)
-        button_frame.pack(pady=5)
+        button_frame.pack(pady=5, fill=tk.X)
 
         add_button = tk.Button(input_frame, text="Add Task", command=self.add_task) 
         add_button.pack(side=tk.LEFT)
@@ -88,14 +103,47 @@ class Dodo_App:
         save_button = tk.Button(button_frame, text="Save Tasks", command=self.save_tasks)
         save_button.pack(side=tk.LEFT, padx=5)
 
+    def on_drag_start(self, event, index):
+        self._drag_start_index = index
+
+    def on_drag_stop(self, event):
+        if not hasattr(self, "_drag_start_index"):
+            return
+        y = event.y_root
+        children = list(self.tasks_frame.winfo_children())
+        target_index = len(children) - 1
+        for i, w in enumerate(children):
+            top = w.winfo_rooty()
+            bottom = top + w.winfo_height()
+            if y < bottom:
+                target_index = i
+                break
+
+        src = self._drag_start_index
+        if target_index != src:
+            task = self.tasks.pop(src)
+            self.tasks.insert(target_index, task)
+            self.refresh_task_display()
+        del self._drag_start_index
+
     def create_task_checkbox(self, task, index):
+        row = tk.Frame(self.tasks_frame, bg=self.priority_color(task))
+        row.pack(fill=tk.X, padx=8, pady=2)
+
+        var = tk.BooleanVar(value=task["completed"])
         checkbox = tk.Checkbutton(
-            self.tasks_frame,
-            text=task["text"],
-            variable=tk.BooleanVar(value=task["completed"]),
-            command=lambda: self.toggle_task(index)
+            row,
+            text=task["text"], 
+            variable=var,
+            command=lambda: self.toggle_task(index),
+            bg=self.priority_color(task),
+            anchor="w"
         )
-        checkbox.pack(anchor="w", padx=10, pady=2)
+        checkbox.pack(fill=tk.X, anchor="w")
+
+        row.bind("<Button-1>", lambda e, i=index: self.on_drag_start(e, i))
+        row.bind("<ButtonRelease-1>", lambda e: self.on_drag_stop(e))
+        row.configure(cursor="fleur")
 
     def toggle_task(self, index):
         self.tasks[index]["completed"] = not self.tasks[index]["completed"]
