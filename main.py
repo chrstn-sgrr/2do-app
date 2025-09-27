@@ -109,6 +109,9 @@ class Dodo_App:
     def on_drag_stop(self, event):
         if not hasattr(self, "_drag_start_index"):
             return
+
+        self.tasks_frame.update_idletasks()
+
         y = event.y_root
         children = list(self.tasks_frame.winfo_children())
         target_index = len(children) - 1
@@ -120,14 +123,17 @@ class Dodo_App:
                 break
 
         src = self._drag_start_index
-        if target_index != src:
+        if 0 <= src < len(self.tasks) and target_index != src:
             task = self.tasks.pop(src)
             self.tasks.insert(target_index, task)
             self.refresh_task_display()
+
         del self._drag_start_index
 
     def create_task_checkbox(self, task, index):
-        row = tk.Frame(self.tasks_frame, bg=self.priority_color(task))
+        bg = self.priority_color(task)
+
+        row = tk.Frame(self.tasks_frame, bg=bg)
         row.pack(fill=tk.X, padx=8, pady=2)
 
         var = tk.BooleanVar(value=task["completed"])
@@ -136,13 +142,20 @@ class Dodo_App:
             text=task["text"], 
             variable=var,
             command=lambda: self.toggle_task(index),
-            bg=self.priority_color(task),
+            bg=bg,
+            activebackground=bg,
+            selectcolor=bg,
+            highlightthickness=0,
+            bd=0,
             anchor="w"
         )
         checkbox.pack(fill=tk.X, anchor="w")
 
         row.bind("<Button-1>", lambda e, i=index: self.on_drag_start(e, i))
         row.bind("<ButtonRelease-1>", lambda e: self.on_drag_stop(e))
+        checkbox.bind("<Button-1>", lambda e, i=index: self.on_drag_start(e, i))
+        checkbox.bind("<ButtonRelease-1>", lambda e: self.on_drag_stop(e))
+
         row.configure(cursor="fleur")
 
     def toggle_task(self, index):
