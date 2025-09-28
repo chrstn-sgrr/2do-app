@@ -1,4 +1,12 @@
 # 2do-app
 just another to do app. 
 
-made this one for personal use as I often just use a notepad, will improve this in the future
+Made this one for personal use as I often just use a notepad prior
+
+Current features:
+- Add/Remove Tasks (duh)
+- Change color of each task based on priority
+- Drag and drop tasks to change order based on priority 
+- Working checkboxes for each task 
+- Save tasks 
+- Refresh tasks
