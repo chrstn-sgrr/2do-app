@@ -3,28 +3,47 @@ import tkinter as tk
 import json
 import os
 
+# Main application class for the 2do App
 class Dodo_App:
 
     def __init__(self, root):
+        """
+        Initializes the Dodo_App. 
+        Sets up the main window, loads tasks, and creates UI widgets.
+        """
         self.root = root
         self.root.title("2do App")
         self.root.iconbitmap("assets/favicon.ico")
 
-        self.tasks = []
+        self.tasks = []  # List to store task dictionaries
 
         self.create_widgets()
         self.load_tasks()
 
     def priority_color(self, task):
-        base = self.root.cget("bg")
+        """
+        Determines the background color for a task based on its priority.
+        Args:
+            task (dict): A dictionary representing a task, expected to have a 'priority' key.
+        Returns:
+            str: Hex color code for the priority, or the default background color if priority is 'normal' or not found.
+        """
+        base = self.root.cget("bg")  # Get the default background color of the root window
         colors = {
-            "normal": base,
-            "medium": "#fff8c4", 
-            "high":   "#ffe4e4", 
+            "normal": base,       # Normal priority tasks use the default background
+            "medium": "#fff8c4",  # Light yellow for medium priority
+            "high":   "#ffe4e4",  # Light red for high priority
         }
+        # Return the color for the given priority, defaulting to 'normal' if not specified,
+        # and falling back to 'base' if the priority is not in the colors map.
         return colors.get(task.get("priority", "normal"), base)
 
     def load_tasks(self):
+        """
+        Loads tasks from the 'data/tasks.json' file.
+        If the file doesn't exist, it creates the directory and starts with an empty list.
+        Handles cases where tasks are strings (legacy format) or missing the 'priority' key.
+        """
         file_path = "data/tasks.json"
 
         if not os.path.exists(file_path):
@@ -75,10 +94,6 @@ class Dodo_App:
     def create_widgets(self):
         input_frame = tk.Frame(self.root)
         input_frame.pack(pady=10, fill=tk.X)
-
-        self.priority_var = tk.StringVar(value="normal")
-        priority_menu = tk.OptionMenu(input_frame, self.priority_var, "normal","medium","high")
-        priority_menu.pack(side=tk.LEFT, padx=5)
 
         self.task_entry = tk.Entry(input_frame, width=40)
         self.task_entry.pack(side=tk.LEFT, padx=5, fill=tk.BOTH, expand=True)
@@ -136,6 +151,11 @@ class Dodo_App:
         row = tk.Frame(self.tasks_frame, bg=bg)
         row.pack(fill=tk.X, padx=8, pady=2)
 
+        # Colored box for priority
+        priority_box = tk.Label(row, bg=bg, width=2, relief="ridge") 
+        priority_box.pack(side=tk.LEFT, padx=(0, 5), anchor="center")
+        priority_box.bind("<Button-1>", lambda e, i=index: self.show_priority_menu(e, i))
+
         var = tk.BooleanVar(value=task["completed"])
         checkbox = tk.Checkbutton(
             row,
@@ -166,6 +186,24 @@ class Dodo_App:
 
     def on_delete_pressed(self, event):
         self.remove_task()
+
+    def show_priority_menu(self, event, index):
+        menu = tk.Menu(self.root, tearoff=0)
+        priorities = ["normal", "medium", "high"]
+        for p in priorities:
+            color = self.priority_color({"priority": p})
+            menu.add_command(label=p.capitalize(), background=color, 
+                             command=lambda priority=p: self.update_task_priority(index, priority))
+        
+        try:
+            menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            menu.grab_release()
+
+    def update_task_priority(self, index, new_priority):
+        self.tasks[index]["priority"] = new_priority
+        self.save_tasks() # Save tasks immediately after updating priority
+        self.refresh_task_display()
 
 if __name__ == "__main__":
     root = tk.Tk()
