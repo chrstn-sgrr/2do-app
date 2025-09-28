@@ -3,12 +3,11 @@ import tkinter as tk
 import json
 import os
 
-# Main application class for the 2do App
 class Dodo_App:
 
     def __init__(self, root):
         """
-        Initializes the Dodo_App. 
+        Initializes Dodo 
         Sets up the main window, loads tasks, and creates UI widgets.
         """
         self.root = root
@@ -21,13 +20,6 @@ class Dodo_App:
         self.load_tasks()
 
     def priority_color(self, task):
-        """
-        Determines the background color for a task based on its priority.
-        Args:
-            task (dict): A dictionary representing a task, expected to have a 'priority' key.
-        Returns:
-            str: Hex color code for the priority, or the default background color if priority is 'normal' or not found.
-        """
         base = self.root.cget("bg")  # Get the default background color of the root window
         colors = {
             "normal": base,       # Normal priority tasks use the default background
@@ -42,7 +34,7 @@ class Dodo_App:
         """
         Loads tasks from the 'data/tasks.json' file.
         If the file doesn't exist, it creates the directory and starts with an empty list.
-        Handles cases where tasks are strings (legacy format) or missing the 'priority' key.
+        Handles cases where tasks are strings or missing the 'priority' key.
         """
         file_path = "data/tasks.json"
 
@@ -57,8 +49,10 @@ class Dodo_App:
 
                 for task in loaded_tasks:
                     if isinstance(task, str):
+                        # Convert old string-based tasks to dictionary format
                         self.tasks.append({"text": task, "completed":False, "priority": "normal"})
                     else:
+                        # Ensure dictionary-based tasks have a priority key
                         if "priority" not in task:
                             task["priority"] = "normal"
                         self.tasks.append(task)
@@ -73,36 +67,53 @@ class Dodo_App:
             json.dump(self.tasks, file)
 
     def add_task(self):
+        """
+        Adds a new task to the list based on the input entry.
+        The task is initialized as not completed and with 'normal' priority.
+        """
         task_text = self.task_entry.get()
         if task_text:
-            task = {"text": task_text, "completed":False, "priority":self.priority_var.get()}
+            task = {"text": task_text, "completed":False, "priority":"normal"} # Changed to default 'normal'
             self.tasks.append(task)
             self.create_task_checkbox(task, len(self.tasks) - 1)
-            self.task_entry.delete(0, tk.END)
+            self.task_entry.delete(0, tk.END) # Clear the input field
 
     def refresh_task_display(self):
+        """
+        Clears all existing task widgets from the display and recreates them.
+        This is called after tasks are loaded, added, removed, or their priority is changed.
+        """
+        # Destroy all existing widgets in the tasks frame
         for widget in self.tasks_frame.winfo_children():
             widget.destroy()
 
+        # Recreate checkboxes for all current tasks
         for index, task in enumerate(self.tasks):
             self.create_task_checkbox(task, index)
 
     def remove_task(self):
+        """
+        Removes all tasks marked as completed from the list and refreshes the display.
+        """
+        # Filter out completed tasks
         self.tasks = [task for task in self.tasks if not task["completed"]]
         self.refresh_task_display()
 
     def create_widgets(self):
+        # Frame for task input elements
         input_frame = tk.Frame(self.root)
         input_frame.pack(pady=10, fill=tk.X)
 
         self.task_entry = tk.Entry(input_frame, width=40)
         self.task_entry.pack(side=tk.LEFT, padx=5, fill=tk.BOTH, expand=True)
-        self.task_entry.bind("<Return>", self.on_enter_pressed)
-        self.root.bind("<Delete>", self.on_delete_pressed)
+        self.task_entry.bind("<Return>", self.on_enter_pressed) # Bind Enter key to add_task
+        self.root.bind("<Delete>", self.on_delete_pressed)     # Bind Delete key to remove_task
 
+        # Frame to hold the individual task checkboxes
         self.tasks_frame = tk.Frame(self.root)
         self.tasks_frame.pack(pady=10, fill=tk.BOTH, expand=True)
 
+        # Frame for action buttons (remove, refresh, save)
         button_frame = tk.Frame(self.root)
         button_frame.pack(pady=5, fill=tk.X)
 
@@ -112,8 +123,8 @@ class Dodo_App:
         remove_button = tk.Button(button_frame, text="Remove Task/s", command=self.remove_task)
         remove_button.pack(side=tk.LEFT, padx=5)
 
-        remove_button = tk.Button(button_frame, text="Refresh Tasks", command=self.refresh_task_display)
-        remove_button.pack(side=tk.LEFT, padx=5)
+        refresh_button = tk.Button(button_frame, text="Refresh Tasks", command=self.refresh_task_display)
+        refresh_button.pack(side=tk.LEFT, padx=5)
 
         save_button = tk.Button(button_frame, text="Save Tasks", command=self.save_tasks)
         save_button.pack(side=tk.LEFT, padx=5)
@@ -125,43 +136,45 @@ class Dodo_App:
         if not hasattr(self, "_drag_start_index"):
             return
 
-        self.tasks_frame.update_idletasks()
+        self.tasks_frame.update_idletasks() # Ensure all widgets are updated for accurate positioning
 
-        y = event.y_root
-        children = list(self.tasks_frame.winfo_children())
-        target_index = len(children) - 1
+        y = event.y_root # Y-coordinate of the mouse release relative to the screen
+        children = list(self.tasks_frame.winfo_children()) # Get all task rows
+        target_index = len(children) - 1 # Default target to last position
         for i, w in enumerate(children):
-            top = w.winfo_rooty()
-            bottom = top + w.winfo_height()
+            top = w.winfo_rooty()    # Absolute top Y-coordinate of the widget
+            bottom = top + w.winfo_height() # Absolute bottom Y-coordinate of the widget
             if y < bottom:
-                target_index = i
+                target_index = i # Found the target index if mouse is above the bottom of this widget
                 break
 
         src = self._drag_start_index
         if 0 <= src < len(self.tasks) and target_index != src:
-            task = self.tasks.pop(src)
-            self.tasks.insert(target_index, task)
-            self.refresh_task_display()
+            task = self.tasks.pop(src) # Remove task from its original position
+            self.tasks.insert(target_index, task) # Insert task at the new position
+            self.refresh_task_display() # Refresh the UI to reflect the new order
 
-        del self._drag_start_index
+        del self._drag_start_index # Clean up the stored index
 
     def create_task_checkbox(self, task, index):
-        bg = self.priority_color(task)
+        bg = self.priority_color(task) # Get background color based on task priority
 
+        # Frame for the individual task row, colored by priority
         row = tk.Frame(self.tasks_frame, bg=bg)
         row.pack(fill=tk.X, padx=8, pady=2)
 
-        # Colored box for priority
+        # Colored box for priority indication
         priority_box = tk.Label(row, bg=bg, width=2, relief="ridge") 
         priority_box.pack(side=tk.LEFT, padx=(0, 5), anchor="center")
+        # Bind left-click to show priority selection menu
         priority_box.bind("<Button-1>", lambda e, i=index: self.show_priority_menu(e, i))
 
-        var = tk.BooleanVar(value=task["completed"])
+        var = tk.BooleanVar(value=task["completed"]) # Boolean variable for checkbox state
         checkbox = tk.Checkbutton(
             row,
             text=task["text"], 
             variable=var,
-            command=lambda: self.toggle_task(index),
+            command=lambda: self.toggle_task(index), # Command to toggle task completion
             bg=bg,
             activebackground=bg,
             selectcolor=bg,
@@ -171,14 +184,20 @@ class Dodo_App:
         )
         checkbox.pack(fill=tk.X, anchor="w")
 
+        # Bind drag-and-drop events to the task row and checkbox for reordering
         row.bind("<Button-1>", lambda e, i=index: self.on_drag_start(e, i))
         row.bind("<ButtonRelease-1>", lambda e: self.on_drag_stop(e))
         checkbox.bind("<Button-1>", lambda e, i=index: self.on_drag_start(e, i))
         checkbox.bind("<ButtonRelease-1>", lambda e: self.on_drag_stop(e))
 
-        row.configure(cursor="fleur")
+        row.configure(cursor="fleur") # Change cursor to indicate draggable
 
     def toggle_task(self, index):
+        """
+        Toggles the 'completed' status of a task at the given index.
+        Args:
+            index (int): The index of the task to toggle.
+        """
         self.tasks[index]["completed"] = not self.tasks[index]["completed"]
 
     def on_enter_pressed(self, event):
@@ -188,24 +207,31 @@ class Dodo_App:
         self.remove_task()
 
     def show_priority_menu(self, event, index):
-        menu = tk.Menu(self.root, tearoff=0)
+        """
+        Displays a context menu for selecting task priority.
+        The menu appears at the mouse cursor's position and offers colored priority options.
+        Args:
+            event (tk.Event): The event object (e.g., mouse click).
+            index (int): The index of the task for which the priority is being set.
+        """
+        menu = tk.Menu(self.root, tearoff=0) # Create a new menu without the tear-off feature
         priorities = ["normal", "medium", "high"]
         for p in priorities:
-            color = self.priority_color({"priority": p})
+            color = self.priority_color({"priority": p}) # Get the color for the current priority
             menu.add_command(label=p.capitalize(), background=color, 
                              command=lambda priority=p: self.update_task_priority(index, priority))
         
         try:
-            menu.tk_popup(event.x_root, event.y_root)
+            menu.tk_popup(event.x_root, event.y_root) # Display the menu at the cursor's absolute screen position
         finally:
-            menu.grab_release()
+            menu.grab_release() 
 
     def update_task_priority(self, index, new_priority):
         self.tasks[index]["priority"] = new_priority
-        self.save_tasks() # Save tasks immediately after updating priority
-        self.refresh_task_display()
+        self.save_tasks() 
+        self.refresh_task_display() 
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = Dodo_App(root)
-    root.mainloop()
+    root = tk.Tk() # Create main Tkinter window
+    app = Dodo_App(root) # Instantiate Dodo
+    root.mainloop() # Start tkinter event loop
