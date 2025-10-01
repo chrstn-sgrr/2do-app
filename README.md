@@ -10,3 +10,6 @@ Current features:
 - Working checkboxes for each task 
 - Save tasks 
 - Refresh tasks
+- Custom font selection
+- Adjustable font size
+- Dark mode toggle
