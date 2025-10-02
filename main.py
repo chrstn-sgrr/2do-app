@@ -262,6 +262,13 @@ class Dodo_App:
         row = tk.Frame(self.tasks_frame, bg=bg)
         row.pack(fill=tk.X, padx=8, pady=2)
 
+        # Drag handle (for reordering tasks)
+        drag_handle = tk.Label(row, text="☰", bg=bg, fg=text_color, width=2, cursor="fleur")
+        drag_handle.pack(side=tk.LEFT, padx=(0, 2), anchor="center")
+        # Bind drag-and-drop to the drag handle
+        drag_handle.bind("<Button-1>", lambda e, i=index: self.on_drag_start(e, i))
+        drag_handle.bind("<ButtonRelease-1>", lambda e: self.on_drag_stop(e))
+
         # Colored box for priority indication
         priority_box = tk.Label(row, bg=bg, width=2, relief="ridge") 
         priority_box.pack(side=tk.LEFT, padx=(0, 5), anchor="center")
@@ -285,14 +292,6 @@ class Dodo_App:
             font=font_config
         )
         checkbox.pack(fill=tk.X, anchor="w")
-
-        # Bind drag-and-drop events to the task row and checkbox for reordering
-        row.bind("<Button-1>", lambda e, i=index: self.on_drag_start(e, i))
-        row.bind("<ButtonRelease-1>", lambda e: self.on_drag_stop(e))
-        checkbox.bind("<Button-1>", lambda e, i=index: self.on_drag_start(e, i))
-        checkbox.bind("<ButtonRelease-1>", lambda e: self.on_drag_stop(e))
-
-        row.configure(cursor="fleur") # Change cursor to indicate draggable
 
     def toggle_task(self, index):
         """
