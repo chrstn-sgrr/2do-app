@@ -11,7 +11,7 @@ class SettingsWindow:
         # Create the settings window
         self.window = tk.Toplevel(parent)
         self.window.title("Settings")
-        self.window.geometry("500x450")
+        self.window.geometry("550x600")  # Increased size to show all elements
         self.window.configure(bg=theme_colors["bg"])
         
         # Make it a modal dialog
@@ -37,60 +37,89 @@ class SettingsWindow:
                 bg=self.theme_colors["bg"], 
                 fg=self.theme_colors["fg"]).grid(row=0, column=0, sticky="nw", padx=10, pady=5)
         
-        # Create a frame to hold the listbox and scrollbar
-        font_list_frame = tk.Frame(font_frame, bg=self.theme_colors["bg"])
+        # Create a frame to hold the canvas and scrollbar
+        font_list_frame = tk.Frame(font_frame, bg=self.theme_colors["bg"], height=250)
         font_list_frame.grid(row=0, column=1, padx=10, pady=5, sticky="nsew")
+        font_list_frame.grid_propagate(False)  # Prevent frame from shrinking
         font_frame.grid_columnconfigure(1, weight=1)
         font_frame.grid_rowconfigure(0, weight=1)
         
-        # Scrollbar for the font list
-        font_scrollbar = tk.Scrollbar(font_list_frame)
-        font_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        # Create canvas for custom font list with scrollbar
+        canvas = tk.Canvas(font_list_frame, 
+                          bg=self.theme_colors["entry_bg"],
+                          highlightthickness=1,
+                          highlightbackground=self.theme_colors["fg"])
+        scrollbar = tk.Scrollbar(font_list_frame, command=canvas.yview)
+        canvas.configure(yscrollcommand=scrollbar.set)
         
-        # Listbox to display font previews
-        self.font_listbox = tk.Listbox(font_list_frame, 
-                                   height=10,
-                                   bg=self.theme_colors["entry_bg"], 
-                                   fg=self.theme_colors["fg"],
-                                   selectbackground=self.theme_colors["button_bg"],
-                                   selectforeground=self.theme_colors["fg"],
-                                   yscrollcommand=font_scrollbar.set,
-                                   exportselection=False)
-        self.font_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        font_scrollbar.config(command=self.font_listbox.yview)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        # Frame inside canvas to hold font items
+        font_items_frame = tk.Frame(canvas, bg=self.theme_colors["entry_bg"])
+        canvas_window = canvas.create_window((0, 0), window=font_items_frame, anchor="nw")
         
         # Font families list
         self.font_families = ["TkDefaultFont", "Arial", "Helvetica", "Times New Roman", 
                         "Courier New", "Comic Sans MS", "Verdana", "Georgia", 
                         "Calibri", "Tahoma", "Trebuchet MS", "Lucida Console"]
         
-        # Add fonts to listbox with their own font preview
-        selected_index = 0
-        for i, font_name in enumerate(self.font_families):
-            self.font_listbox.insert(tk.END, font_name)
-            try:
-                # Try to set each item to display in its own font
-                self.font_listbox.itemconfig(i, font=(font_name, 11))
-                if font_name == self.settings["font_family"]:
-                    selected_index = i
-            except:
-                # If font doesn't exist, use default
-                pass
-        
-        # Select the current font
-        self.font_listbox.select_set(selected_index)
-        self.font_listbox.see(selected_index)
-        
         # Variable to track selected font
         self.font_var = tk.StringVar(value=self.settings["font_family"])
         
-        # Update font_var when selection changes
-        def on_font_select(event):
-            selection = self.font_listbox.curselection()
-            if selection:
-                self.font_var.set(self.font_families[selection[0]])
+        # Create radio buttons for each font with preview
+        self.font_buttons = []
+        for font_name in self.font_families:
+            # Create a frame for each font option
+            font_option_frame = tk.Frame(font_items_frame, 
+                                        bg=self.theme_colors["entry_bg"])
+            font_option_frame.pack(fill=tk.X, pady=1)
+            
+            # Radio button with the font displayed in its own style
+            try:
+                rb = tk.Radiobutton(font_option_frame,
+                                   text=font_name,
+                                   variable=self.font_var,
+                                   value=font_name,
+                                   font=(font_name, 11),
+                                   bg=self.theme_colors["entry_bg"],
+                                   fg=self.theme_colors["fg"],
+                                   activebackground=self.theme_colors["entry_bg"],
+                                   activeforeground=self.theme_colors["fg"],
+                                   selectcolor=self.theme_colors["button_bg"],
+                                   anchor="w",
+                                   highlightthickness=0)
+            except:
+                # If font doesn't exist, use default font
+                rb = tk.Radiobutton(font_option_frame,
+                                   text=f"{font_name} (not available)",
+                                   variable=self.font_var,
+                                   value=font_name,
+                                   bg=self.theme_colors["entry_bg"],
+                                   fg=self.theme_colors["fg"],
+                                   activebackground=self.theme_colors["entry_bg"],
+                                   activeforeground=self.theme_colors["fg"],
+                                   selectcolor=self.theme_colors["button_bg"],
+                                   anchor="w",
+                                   highlightthickness=0)
+            
+            rb.pack(fill=tk.X, padx=5, pady=2)
+            self.font_buttons.append(rb)
         
-        self.font_listbox.bind('<<ListboxSelect>>', on_font_select)
+        # Update scroll region after adding all items
+        def configure_scroll_region(event=None):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+            # Make canvas width match the frame width
+            canvas.itemconfig(canvas_window, width=canvas.winfo_width())
+        
+        font_items_frame.bind("<Configure>", configure_scroll_region)
+        canvas.bind("<Configure>", configure_scroll_region)
+        
+        # Enable mousewheel scrolling
+        def on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        
+        canvas.bind_all("<MouseWheel>", on_mousewheel)
         
         # Font size selection
         tk.Label(font_frame, text="Font Size:", 
@@ -165,4 +194,4 @@ class SettingsWindow:
     
     def _cancel_settings(self):
         self.window.destroy()
-
+        
