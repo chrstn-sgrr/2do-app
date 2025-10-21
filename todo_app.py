@@ -8,7 +8,6 @@ class TodoApp:
     def __init__(self, root):
         self.root = root
         self.root.title("2do App")
-        self.root.iconbitmap("assets/favicon.ico")
 
         self.tasks = []  # List to store task dictionaries
         
